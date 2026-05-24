@@ -2,7 +2,7 @@
 
 using namespace std;
 
-// 1. Plantilla para el Tipo de Dato Nodo
+// Plantilla para el Tipo de Dato Nodo
 template <typename T>
 class Node {
 private:
@@ -23,7 +23,7 @@ public:
     Node<T>* getNextNode() { return nextNode; }
 };
 
-// 2. Clase Lista que gestiona la cadena de nodos
+// Clase Lista que gestiona la cadena de nodos
 template <typename T>
 class Lista {
 private:
