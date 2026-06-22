@@ -43,10 +43,12 @@ public:
     }
     ~Lista() {
         Node<T>* actual = head;
-        while (actual != nullptr) {
+        int borrados = 0;
+        while (actual != nullptr && borrados < size) {
             Node<T>* siguiente = actual->getNextNode();
             delete actual; 
             actual = siguiente;
+            borrados++;
         }
     }
 
@@ -59,6 +61,10 @@ public:
     int incrementarSize() {
         return size++;
     }
+
+    // Deshabilitar copia y asignación
+    Lista(const Lista&) = delete;
+    Lista& operator=(const Lista&) = delete;
 
     /* Método para insertar al final y mantener sincronizado el atributo size
     */
@@ -75,33 +81,49 @@ public:
         size++;
     }
     
-    // Verificar la integridad de la lista mediante el algoritmo de Floyd
-    bool esListaValida(Node<T>* head) {
-        if (head == nullptr) {
-            return true;
-        }
-
-        Node<T>* tortuga = head;
-        Node<T>* liebre = head;
-
-        while (liebre != nullptr && liebre->getNextNode() != nullptr) {
-            // Verificar consistencia del enlace doble antes de avanzar
-            Node<T>* siguiente = tortuga->getNextNode();
-            if (siguiente != nullptr && siguiente->getPrevNode() != tortuga) {
-                // El siguiente nodo no reconoce a tortuga como su prev
-                return false; 
-            }
-
-            // Avanzar punteros
-            tortuga = tortuga->getNextNode();
-            liebre = liebre->getNextNode()->getNextNode();
-
-            if (tortuga == liebre) {
-                return false; // Hay un bucle infinito
-            }
-        }
-        return true;
+    void borrarAlFinal() {
+        if (tail == nullptr) return;
+        Node<T>* temp = tail;
+        tail = tail->getPrevNode();
+        if (tail) tail->setNextNode(nullptr);
+        else head = nullptr;
+        delete temp;
+        size--; // Decrementar el tamaño al eliminar un nodo
     }
+
+    bool esListaValida() {
+        // --- 1. VALIDACIÓN HACIA ADELANTE ---
+
+        if (head !=  nullptr){
+        Node<T>* lento = head;
+        Node<T>* rapido = head;
+        while (rapido != nullptr && rapido->getNextNode() != nullptr) {
+            // Integridad: El siguiente conoce a este como su previo?
+            if (lento->getNextNode() != nullptr && lento->getNextNode()->getPrevNode() != lento) 
+                return false;
+
+            lento = lento->getNextNode();
+            rapido = rapido->getNextNode()->getNextNode();
+            if (lento == rapido) return false; // Hay ciclo
+        }
+    };
+
+    // --- 2. VALIDACIÓN HACIA ATRÁS ---
+    if (tail != nullptr) {
+        Node<T>* lento = tail;
+        Node<T>* rapido = tail;
+        while (rapido != nullptr && rapido->getPrevNode() != nullptr) {
+            // Integridad: El previo conoce a este como su siguiente?
+            if (lento->getPrevNode() != nullptr && lento->getPrevNode()->getNextNode() != lento) 
+                return false;
+
+            lento = lento->getPrevNode();
+            rapido = rapido->getPrevNode()->getPrevNode();
+            if (lento == rapido) return false; // Hay ciclo
+        }
+    }
+    return true;
+}
 
     // Validación por simetría de memoria usando el atributo size
     bool verificarListaConArreglo() {
@@ -166,7 +188,7 @@ public:
 
 
 int main() {
-    cout << "=== PRUEBAS DE INTEGRIDAD DE LISTA DOBLEMENTE ENLAZADA ===\n\n";
+    cout << "=== PRUEBA DE INTEGRIDAD DE LISTA DOBLEMENTE ENLAZADA ===\n\n";
 
     // ESCENARIO 1: Una lista perfectamente válida
     cout << "--- Caso 1: Lista Valida ---\n";
@@ -177,10 +199,10 @@ int main() {
     listaSana.insertarAlFinal(30);
     listaSana.insertarAlFinal(40);
 
-    cout << "Tamano registrado: " << listaSana.getSize() << endl;
+    cout << "Tamaño registrado: " << listaSana.getSize() << endl;
 
     // Probar método 1 (Floyd)
-    if (listaSana.esListaValida(listaSana.getHead())) {
+    if (listaSana.esListaValida()) {
         cout << "[OK] Metodo Floyd: La lista es estructuralmente valida.\n";
     } else {
         cout << "[ERROR] Metodo Floyd: Se detecto un problema en la estructura.\n";
@@ -194,7 +216,7 @@ int main() {
     }
 
     // ESCENARIO 2: Corrupción manual de enlaces prev (Punteros rotos)
-    cout << "\n--- Caso 2: Lista Corrupta (Punteros 'prev' incorrectos) ---\n";
+    cout << "\n--- Caso 2: Lista Corrupta (Punteros prev incorrectos) ---\n";
     Lista<int> listaCorrupta;
     listaCorrupta.insertarAlFinal(100);
     listaCorrupta.insertarAlFinal(200);
@@ -205,7 +227,7 @@ int main() {
     tercerNodo->setPrevNode(listaCorrupta.getHead()); 
 
     // Probar método 1
-    if (listaCorrupta.esListaValida(listaCorrupta.getHead())) {
+    if (listaCorrupta.esListaValida()) {
         cout << "[INFO] Metodo Floyd: Detecto que la lista no es valida (Bien).\n";
     } else {
         cout << "[OK] Metodo Floyd: Capturo exitosamente la falla de coherencia doble enlace.\n";
@@ -232,7 +254,7 @@ int main() {
     ultimo->setNextNode(segundo);
 
     // Probar método 1 
-    if (listaConBucle.esListaValida(listaConBucle.getHead())) {
+    if (listaConBucle.esListaValida()) {
         cout << "[INFO] Metodo Floyd: No detecto el bucle (Fallo).\n";
     } else {
         cout << "[OK] Metodo Floyd: Evito el bucle infinito y reporto falso con exito.\n";
@@ -247,6 +269,37 @@ int main() {
 
     // Evitar que el programa quede atrapado en un bucle infinito al salir, restaurando el enlace correcto
     ultimo->setNextNode(nullptr); 
+
+    // Caso 4 - Bucle en prev
+
+    cout << "\n--- Caso 4: Lista con Bucle en prev ---\n";
+    Lista<int> listaConBucle2; 
+    listaConBucle2.insertarAlFinal(5);
+    listaConBucle2.insertarAlFinal(15);
+    listaConBucle2.insertarAlFinal(25);
+
+    Node<int>* primero = listaConBucle2.getHead();
+    Node<int>* antePenultimo = listaConBucle2.getTail()->getPrevNode();
+
+    primero->setPrevNode(antePenultimo); // Bucle creado
+
+    // Probar método 1 
+    if (listaConBucle2.esListaValida()) {
+        cout << "[INFO] Metodo Floyd: No detecto el bucle (Fallo).\n";
+    } else {
+        cout << "[OK] Metodo Floyd: Evito el bucle infinito y reporto falso con exito.\n";
+    }
+
+    // Probar método 2 
+    if (listaConBucle2.verificarListaConArreglo()) {
+        cout << "[INFO] Metodo Arreglo: No detecto el bucle (Fallo).\n";
+    } else {
+        cout << "[OK] Metodo Arreglo: Detuvo el ciclo usando el tamaño maximo y reporto falso con exito.\n";
+    }
+
+    // Evitar que el programa quede atrapado en un bucle infinito al salir, restaurando el enlace correcto
+    primero->setPrevNode(nullptr); 
+    antePenultimo->setNextNode(nullptr);
 
     return 0;
 }
