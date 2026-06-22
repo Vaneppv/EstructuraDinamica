@@ -141,6 +141,24 @@ public:
         }
     }
 
+    Colas<T>* invertirCola() {
+        Colas<T> colaAux;
+        int n = cola.getSize();
+
+        for (int i = 0; i < n; i++) {
+            int elementosRestantes = cola.getSize();
+
+            for (int j = 0; j < elementosRestantes - 1; j++) {
+                T elemento = cola.pop();
+                cola.push(elemento); 
+            }
+            colaAux.push(cola.pop());
+        }
+
+        while (!colaAux.empty()) {
+            cola.push(colaAux.pop());
+        }
+    }
 };
 
 int main() {
